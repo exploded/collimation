@@ -1,0 +1,40 @@
+{{define "nav"}}
+<nav class="tabs">
+  <a href="/" class="{{if eq .Nav "collimate"}}on{{end}}">Collimate</a>
+  <a href="/calibrate" class="{{if eq .Nav "calibrate"}}on{{end}}">Calibrate</a>
+  <a href="/analyse" class="{{if eq .Nav "analyse"}}on{{end}}">Saved images</a>
+  <a href="/history" class="{{if eq .Nav "history"}}on{{end}}">History</a>
+  <a href="/setup" class="{{if eq .Nav "setup"}}on{{end}}">Setup</a>
+</nav>
+{{end}}
+
+{{define "steps"}}
+<ol class="steps">
+  {{range .Steps}}
+  <li class="st-{{.State}}"><span class="tick" aria-hidden="true"></span>{{.Text}}</li>
+  {{end}}
+</ol>
+{{end}}
+
+{{define "turncard"}}
+<div class="turn">
+  <div class="screw" aria-label="Screw {{.Screw}}">{{.Screw}}</div>
+  <div class="turn-words">
+    <div class="amount">{{.Amount}}</div>
+    <div class="dir dir-{{.Direction}}">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M30 20a10 10 0 1 1-4-8"/><path class="head" d="M27 6l-1 6.5 6.5 1"/></svg>
+      {{.Direction}}
+    </div>
+  </div>
+</div>
+{{end}}
+
+{{/* Header status light. Data: station.NinaStatus. Polls itself every 10 s. */}}
+{{define "ninalight"}}
+<a id="nina-light" href="/setup" class="nina-light {{if .OK}}ok{{else if .Reachable}}warn{{else}}bad{{end}}"
+   hx-get="/nina/status" hx-trigger="every 10s" hx-swap="outerHTML"
+   title="{{if .Reachable}}{{range .Devices}}{{.Name}}: {{if .Connected}}connected{{if .Detail}} ({{.Detail}}){{end}}{{else}}not connected{{end}}&#10;{{end}}{{else}}{{.Err}}{{end}}">
+  <span class="lamp" aria-hidden="true"></span>
+  <span class="nl-text"><b>N.I.N.A.</b> <span class="nl-sum">{{.Summary}}</span></span>
+</a>
+{{end}}

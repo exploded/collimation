@@ -1,0 +1,107 @@
+{{define "content"}}
+<div class="narrow">
+  <h1>Calibrate the screws</h1>
+  <p class="lede">I learn what one turn of each primary collimation screw does to the image. After that I can tell you which screw to turn and by how much. You only need to do this once; every adjustment afterwards refines it.</p>
+  {{template "calpanel" .}}
+</div>
+{{end}}
+
+{{define "calpanel"}}{{with .Data}}
+<section id="calpanel" class="calpanel" hx-get="/calibrate/panel" hx-trigger="{{.Poll}}" hx-swap="outerMorph">
+  {{if .Msg}}<div class="alert" role="alert">{{.Msg}}</div>{{end}}
+
+  {{if .Busy}}
+    <div class="card working">
+      <h2>{{.Job.Title}}…</h2>
+      {{template "steps" .Job}}
+      <form><input type="hidden" name="from" value="calibrate">
+        <button class="btn stop" hx-post="/stop" hx-include="closest form" hx-target="#calpanel" hx-swap="outerMorph" hx-disable="this">Stop</button>
+      </form>
+    </div>
+  {{else}}
+    {{with .Job}}{{if and .Done .Err (eq .Kind "calibrate")}}{{if ne .Err "Stopped."}}
+      <div class="alert" role="alert"><strong>{{.Title}} failed.</strong> {{.Err}}</div>
+    {{end}}{{end}}{{end}}
+
+    {{if not .Wiz.Active}}
+      {{if .Wiz.Saved}}
+        <div class="card good">
+          <p class="eyebrow">Saved</p>
+          <h2>Calibration saved.</h2>
+          <p class="lede">Go back to <b>Collimate</b> for the first adjustment. Leave the screws where they are; it starts from the last calibration reading.</p>
+          <div class="actions"><a class="btn primary" href="/">Collimate</a></div>
+        </div>
+      {{else}}
+        <div class="card">
+          <p class="eyebrow">Before you start</p>
+          <ol class="prep">
+            <li>Put tape labels <b>A</b>, <b>B</b> and <b>C</b> on the three primary collimation screws. Any order works.</li>
+            <li>"Clockwise" always means <b>as seen from behind the mirror cell</b>.</li>
+            <li>Each step asks for a {{.Turn}}. Back the lock screw well off first (a lock that still bites swallows the turn), and snug it afterwards the same way every time.</li>
+            <li>Point at a rich star field high in the sky. Calibration takes four measurements, about five minutes.</li>
+          </ol>
+          <div class="actions">
+            <button class="btn primary" hx-post="/calibrate/start" hx-target="#calpanel" hx-swap="outerMorph" hx-disable="this">Start calibration</button>
+          </div>
+        </div>
+      {{end}}
+    {{else}}
+      <div class="progress4" aria-label="Step {{inc .Wiz.Stage}} of 4">
+        {{range $i, $l := (list4)}}<span class="{{if lt $i $.Data.Wiz.Stage}}done{{else if eq $i $.Data.Wiz.Stage}}now{{end}}">{{$l}}</span>{{end}}
+      </div>
+      {{if eq .Wiz.Stage 0}}
+        <div class="card instruct">
+          <p class="eyebrow">Step 1 of 4 · Baseline</p>
+          <h2>Don't touch the screws.</h2>
+          <p class="lede">Press Measure to record where things are now.</p>
+          <div class="actions"><button class="btn primary" hx-post="/calibrate/measure" hx-target="#calpanel" hx-swap="outerMorph" hx-disable="this">Measure baseline</button></div>
+        </div>
+      {{else if eq .Wiz.Stage 1}}
+        <div class="card instruct">
+          <p class="eyebrow">Step 2 of 4 · Screw A</p>
+          <div class="turn"><div class="screw">A</div><div class="turn-words"><div class="amount">{{.Turn}}</div><div class="dir">clockwise</div></div></div>
+          <p class="hint">Seen from behind the cell. Then press Measure.</p>
+          <div class="actions"><button class="btn primary" hx-post="/calibrate/measure" hx-target="#calpanel" hx-swap="outerMorph" hx-disable="this">Done – measure</button></div>
+        </div>
+      {{else if eq .Wiz.Stage 2}}
+        <div class="card instruct">
+          <p class="eyebrow">Step 3 of 4 · Screw B{{if .Wiz.Retrying}} again{{end}}</p>
+          <div class="turn"><div class="screw">B</div><div class="turn-words"><div class="amount">{{if .Wiz.Retrying}}another {{end}}{{.Turn}}</div><div class="dir">clockwise</div></div></div>
+          {{if .Wiz.Retrying}}
+          <p class="hint">Back B's lock well off first. I'll measure from the last reading, so only this turn counts. Leave A where it is.</p>
+          {{else}}
+          <p class="hint">Leave A where it is. Then press Measure.</p>
+          {{end}}
+          <div class="actions"><button class="btn primary" hx-post="/calibrate/measure" hx-target="#calpanel" hx-swap="outerMorph" hx-disable="this">Done – measure</button></div>
+        </div>
+      {{else if eq .Wiz.Stage 3}}
+        <div class="card instruct">
+          <p class="eyebrow">Step 4 of 4 · Screw C (optional)</p>
+          <div class="turn"><div class="screw">C</div><div class="turn-words"><div class="amount">{{.Turn}}</div><div class="dir">clockwise</div></div></div>
+          <p class="hint">A and B are saved already. Measuring C as well makes the calibration a little better; otherwise I work C out from A and B.</p>
+          <div class="actions">
+            <button class="btn primary" hx-post="/calibrate/measure" hx-target="#calpanel" hx-swap="outerMorph" hx-disable="this">Done – measure</button>
+            <button class="btn" hx-post="/calibrate/finish" hx-target="#calpanel" hx-swap="outerMorph" hx-disable="this">Finish without C</button>
+          </div>
+        </div>
+      {{end}}
+      <button class="btn stop small" hx-post="/calibrate/cancel" hx-target="#calpanel" hx-swap="outerMorph" hx-confirm="Abandon this calibration?">Cancel calibration</button>
+    {{end}}
+  {{end}}
+
+  {{if and .HasCal (not .Wiz.Active)}}
+    <div class="card quiet">
+      <p class="eyebrow">Current calibration · per ⅛ turn clockwise</p>
+      <table class="num-table">
+        <thead><tr><th>Screw</th><th>Coma change (px)</th><th>Star shift (px)</th></tr></thead>
+        <tbody>
+          {{range $i, $c := .Cal.Coma}}
+          <tr><td class="screw-cell">{{index (list3) $i}}</td><td>{{s2 $c.X}}, {{s2 $c.Y}}</td><td>{{with index $.Data.Cal.Shift $i}}{{f0 .X}}, {{f0 .Y}}{{end}}</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+      {{if not .Cal.CMeasured}}<p class="hint">Screw C is worked out from A and B.</p>{{end}}
+    </div>
+  {{end}}
+</section>
+{{end}}{{end}}

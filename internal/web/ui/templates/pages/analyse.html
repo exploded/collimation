@@ -1,0 +1,50 @@
+{{define "content"}}
+<div class="narrow">
+  <h1>Analyse saved images</h1>
+  <p class="lede">Measure collimation from frames N.I.N.A. has already saved: at least one defocused frame each side of focus. Frames taken within 15 minutes of each other form a run.</p>
+  <form class="folder" hx-get="/analyse" hx-target="#runs" hx-swap="outerHTML">
+    <label for="dir">Folder</label>
+    <div class="folder-row">
+      <input id="dir" name="dir" value="{{.Data.Dir}}" spellcheck="false" autocomplete="off">
+      <button class="btn" hx-disable="this">List runs</button>
+    </div>
+  </form>
+  {{template "runs" .}}
+</div>
+{{end}}
+
+{{define "runs"}}{{with .Data}}
+<section id="runs">
+  {{if .Err}}<div class="alert" role="alert">{{.Err}}</div>{{end}}
+  {{if and .Dir (not .Err) (not .Runs)}}<p class="hint">No FITS files in this folder.</p>{{end}}
+  <ul class="runs">
+    {{range $i, $r := .Runs}}
+    <li>
+      <div class="run-label">{{$r.Label}}</div>
+      <form>
+        <input type="hidden" name="dir" value="{{$.Data.Dir}}">
+        <input type="hidden" name="run" value="{{$i}}">
+        <button class="btn" hx-post="/analyse/run" hx-include="closest form" hx-target="#ajob" hx-swap="outerHTML" hx-disable="this">Analyse</button>
+      </form>
+    </li>
+    {{end}}
+  </ul>
+  {{template "analysejob" $}}
+</section>
+{{end}}{{end}}
+
+{{define "analysejob"}}{{with .Data}}
+<div id="ajob" {{if .Job}}{{if .Job.Running}}hx-get="/analyse/job" hx-trigger="every 1s" hx-swap="outerHTML"{{end}}{{end}}>
+  {{if .Err}}<div class="alert" role="alert">{{.Err}}</div>{{end}}
+  {{with .Job}}{{if eq .Kind "analyse"}}
+    <div class="card {{if .Done}}{{if .Err}}{{else}}good{{end}}{{else}}working{{end}}">
+      <h2>{{if .Done}}{{if .Err}}Failed{{else}}Done{{end}}{{else}}Working{{end}}: {{.Title}}</h2>
+      {{template "steps" .}}
+      {{if .Done}}
+        {{if .Err}}<div class="alert" role="alert">{{.Err}}</div>
+        {{else}}<div class="actions"><a class="btn primary" href="/result/{{.ResultID}}">Open result</a></div>{{end}}
+      {{end}}
+    </div>
+  {{end}}{{end}}
+</div>
+{{end}}{{end}}

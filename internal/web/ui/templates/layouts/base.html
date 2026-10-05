@@ -1,0 +1,41 @@
+{{define "base"}}<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} · Collimation</title>
+  <link rel="icon" href="{{asset "icon.svg"}}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{asset "app.css"}}">
+  <script>
+    // Apply night (red) mode before first paint so the screen never flashes white.
+    try { if (localStorage.getItem("night") === "1") document.documentElement.classList.add("night"); } catch (e) {}
+  </script>
+  <meta name="htmx-config" content='{"noSwap": [204, 304, "5xx"]}'>
+  <script src="{{asset "htmx.min.js"}}" defer></script>
+</head>
+<body>
+  <header class="bar">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13"/><circle cx="16" cy="16" r="5.5"/><circle class="dot" cx="19" cy="13" r="2.2"/></svg>
+      <span>Collimation</span>
+    </a>
+    {{template "nav" .}}
+    <a id="nina-light" href="/setup" class="nina-light" hx-get="/nina/status" hx-trigger="load" hx-swap="outerHTML">
+      <span class="lamp" aria-hidden="true"></span>
+      <span class="nl-text"><b>N.I.N.A.</b> <span class="nl-sum">checking…</span></span>
+    </a>
+    <button class="night-toggle" type="button" onclick="toggleNight()" title="Red night-vision mode">
+      <span class="moon" aria-hidden="true"></span><span class="label">Night</span>
+    </button>
+  </header>
+  <main class="page page-{{.Nav}}">
+    {{block "content" .}}{{end}}
+  </main>
+  <script>
+    function toggleNight() {
+      const on = document.documentElement.classList.toggle("night");
+      try { localStorage.setItem("night", on ? "1" : "0"); } catch (e) {}
+    }
+  </script>
+</body>
+</html>{{end}}

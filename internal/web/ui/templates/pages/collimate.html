@@ -1,0 +1,161 @@
+{{define "content"}}{{template "station" .}}{{end}}
+
+{{define "station"}}{{with .Data}}
+<section id="station" class="station" hx-get="/station" hx-trigger="{{.Poll}}" hx-swap="outerMorph">
+
+  <div class="scope">
+    {{template "bullseye" .Bull}}
+  </div>
+
+  <div class="panel">
+    {{if .LiveOn}}
+      {{if .Live.HasReading}}
+      <div class="readout">
+        <div class="big"><span class="num">{{f1 .Live.Decentre}}</span><span class="unit">mm</span></div>
+        <div class="sub">axis from centre · live · {{.Live.Stars}} stars</div>
+      </div>
+      {{end}}
+    {{else}}{{with .Latest}}
+      <div class="readout">
+        <div class="big"><span class="num">{{f1 .DecentreMm}}</span><span class="unit">mm</span>
+          <span class="pm">± {{f2 $.Data.Accuracy}}</span></div>
+        <div class="sub">axis from centre · {{ago .CreatedAt}}</div>
+        <dl class="facts">
+          <div><dt>Coma</dt><dd>{{s2 .ComaX}}, {{s2 .ComaY}} px</dd></div>
+          <div><dt>Stars</dt><dd>{{.Stars}}</dd></div>
+          <div><dt>Seeing</dt><dd>{{f1 .SeeingPx}} px</dd></div>
+          <div><dt>Altitude</dt><dd>{{f0 .Alt}}°</dd></div>
+        </dl>
+        <a class="details" href="/result/{{.ID}}">Details</a>
+      </div>
+    {{end}}{{end}}
+    {{if .Msg}}<div class="alert" role="alert">{{.Msg}}</div>{{end}}
+
+    {{if .LiveOn}}
+      {{template "livecard" .}}
+    {{else if .Busy}}
+      <div class="card working">
+        <h2>{{.Job.Title}}…</h2>
+        {{template "steps" .Job}}
+        <button class="btn stop" hx-post="/stop" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Stop</button>
+      </div>
+    {{else}}
+      {{with .Job}}{{if and .Done .Err}}{{if ne .Err "Stopped."}}
+        <div class="alert" role="alert"><strong>{{.Title}} failed.</strong> {{.Err}}</div>
+      {{end}}{{end}}{{end}}
+
+      {{if not .Latest}}
+        <div class="card">
+          <p class="eyebrow">Ready</p>
+          <h2>Point at a rich star field high in the sky.</h2>
+          <p class="lede">Press <b>Measure</b>. The focuser goes {{.Set.DefocusSteps}} steps each side of focus and takes {{.Set.FramesPerSide}} × {{f0 .Set.ExposureS}} s frames on each side. It takes about a minute.</p>
+          <div class="actions">
+            <button class="btn primary" hx-post="/measure" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Measure</button>
+            <button class="btn" hx-post="/field" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Slew to Collimation Field</button>
+          </div>
+        </div>
+
+      {{else if and .Done .Pending}}
+        <div class="card good">
+          <p class="eyebrow">Collimated · optional fine-tune</p>
+          <h2>The axis is {{f1 .Latest.DecentreMm}} mm from centre, inside {{.Set.ToleranceMM}} mm.</h2>
+          <p class="lede">This turn should bring it closer still. The dashed ring shows where it should end up.</p>
+          {{range .Steps}}{{template "turncard" .}}{{end}}
+          <div class="actions">
+            <button class="btn primary" hx-post="/measure" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Done – measure again</button>
+            <button class="btn" hx-post="/measure/plain" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Measure without adjusting</button>
+          </div>
+        </div>
+
+      {{else if .Done}}
+        <div class="card good">
+          <p class="eyebrow">Collimated</p>
+          <h2>The axis is {{f1 .Latest.DecentreMm}} mm from centre, inside {{.Set.ToleranceMM}} mm.</h2>
+          <p class="lede">{{if .HasCal}}No turn would improve it by more than a re-measurement scatters. {{end}}Lock the screws, then measure once more to check nothing slipped.</p>
+          <div class="actions">
+            <button class="btn primary" hx-post="/measure/plain" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Measure again</button>
+          </div>
+        </div>
+
+      {{else if .Pending}}
+        <div class="card instruct">
+          <p class="eyebrow">Next adjustment</p>
+          {{range .Steps}}{{template "turncard" .}}{{end}}
+          <p class="hint">Turn as seen from <b>behind the mirror cell</b>. Loosen the lock first and snug it afterwards. The dashed ring shows where the axis should end up.</p>
+          <div class="actions">
+            <button class="btn primary" hx-post="/measure" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Done – measure again</button>
+            <button class="btn" hx-post="/measure/plain" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Measure without adjusting</button>
+          </div>
+        </div>
+
+      {{else if not .HasCal}}
+        <div class="card">
+          <p class="eyebrow">Measured</p>
+          <h2>The axis is {{f1 .Latest.DecentreMm}} mm from centre.</h2>
+          <p class="lede">Calibrate the screws once and I'll tell you exactly which one to turn, and by how much.</p>
+          <div class="actions">
+            <a class="btn primary" href="/calibrate">Calibrate the screws</a>
+            <button class="btn" hx-post="/measure/plain" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Measure again</button>
+          </div>
+        </div>
+
+      {{else}}
+        <div class="card">
+          <p class="eyebrow">Measured</p>
+          <h2>The axis is {{f1 .Latest.DecentreMm}} mm from centre.</h2>
+          <p class="lede">Measure again for the next suggestion.</p>
+          <div class="actions">
+            <button class="btn primary" hx-post="/measure/plain" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Measure</button>
+          </div>
+        </div>
+      {{end}}
+
+      {{with .LastAdj}}
+        <p class="feedback">Your last turn moved the mirror <b>{{pct .Applied}}</b> of the way I asked{{if lt .Applied 0.7}}; the cell may be soft, so I'll ask a bit more next time{{end}}.</p>
+      {{end}}
+    {{end}}
+
+    {{if not .Busy}}
+    <div class="secondary">
+      <button class="btn ghost" hx-post="/live" hx-target="#station" hx-swap="outerMorph" hx-disable="this">
+        <span class="live-dot" aria-hidden="true"></span>Live mode</button>
+    </div>
+    <div class="secondary mount">
+      <span class="group-label">Mount</span>
+      {{if .Latest}}<button class="btn ghost" hx-post="/field" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Slew to Collimation Field</button>{{end}}
+      {{if .Field}}<button class="btn ghost" hx-post="/recentre" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Re-centre</button>{{end}}
+      {{if .Parked}}
+        <button class="btn ghost" hx-post="/unpark" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Unpark</button>
+      {{else}}
+        <button class="btn ghost" hx-post="/park" hx-target="#station" hx-swap="outerMorph" hx-disable="this" hx-confirm="Park the mount?">Park</button>
+        {{if .CanHome}}<button class="btn ghost" hx-post="/home" hx-target="#station" hx-swap="outerMorph" hx-disable="this" hx-confirm="Send the mount to its home position?">Home</button>{{end}}
+      {{end}}
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}{{end}}
+
+{{define "livecard"}}
+<div class="card live live-{{.Live.Status}}">
+  <p class="eyebrow"><span class="live-dot on" aria-hidden="true"></span>Live · frame {{.Live.Frames}}</p>
+  {{if eq .Live.Status "starting"}}<h2>Starting…</h2><p class="lede">Moving the focuser out of focus and taking the first frame.</p>
+  {{else if eq .Live.Status "moving"}}<h2>Stars jumped.</h2><p class="lede">I saw the adjustment. Waiting for two steady frames…</p>
+  {{else if eq .Live.Status "bumped"}}<h2>Frame trailed.</h2><p class="lede">The scope was touched during the exposure. Waiting…</p>
+  {{else if eq .Live.Status "settling"}}<h2>Settling…</h2><p class="lede">One steady frame; one more for a reading.</p>
+  {{else if eq .Live.Status "nostars"}}<h2>No usable stars.</h2><p class="lede">Check the field, cloud and focus offset.</p>
+  {{else if .Live.HasReading}}
+    {{if .Live.HasTurns}}
+      {{if le .Live.Decentre .Set.ToleranceMM}}<h2>Inside {{.Set.ToleranceMM}} mm. Optional fine-tune:</h2>{{end}}
+      {{range .Live.Turns.Steps}}{{template "turncard" .}}{{end}}
+      <p class="hint">Turn while watching the dot. It updates after two steady frames.</p>
+      {{if .Live.HasApplied}}<p class="feedback">Your last turn moved the mirror <b>{{pct .Live.Applied}}</b> of the way I asked.</p>{{end}}
+    {{else if le .Live.Decentre .Set.ToleranceMM}}
+      <h2>Inside {{.Set.ToleranceMM}} mm.</h2><p class="lede">Stop live mode and press Measure to confirm on both sides of focus.</p>
+    {{else}}
+      <h2>{{f1 .Live.Decentre}} mm off.</h2><p class="lede">Calibrate the screws to get turn suggestions here.</p>
+    {{end}}
+  {{end}}
+  <button class="btn stop" hx-post="/stop" hx-target="#station" hx-swap="outerMorph" hx-disable="this">Stop live mode</button>
+</div>
+{{end}}

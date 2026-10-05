@@ -1,0 +1,36 @@
+{{define "content"}}{{with .Data}}
+<div class="wide">
+  <h1>History</h1>
+  {{if not .Ms}}<p class="lede">No measurements yet.</p>{{end}}
+  {{if .Ms}}
+  <table class="num-table hist">
+    <thead><tr><th>When</th><th>Kind</th><th>Axis off</th><th>Axis at (mm)</th><th>Coma (px)</th><th>Stars</th><th>Seeing</th><th>Alt</th><th>Air</th><th></th></tr></thead>
+    <tbody>
+    {{range .Ms}}
+      <tr>
+        <td>{{clock .CreatedAt}}</td><td>{{.Kind}}</td>
+        <td class="strong">{{f1 .DecentreMm}} mm</td>
+        <td>{{s2 .AxisXMm}}, {{s2 .AxisYMm}}</td>
+        <td>{{s2 .ComaX}}, {{s2 .ComaY}}</td>
+        <td>{{.Stars}}</td><td>{{f1 .SeeingPx}}</td><td>{{f0 .Alt}}°</td><td>{{f1 .AmbTemp}} °C</td>
+        <td><a href="/result/{{.ID}}">Open</a></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{end}}
+
+  {{if .Adj}}
+  <h2>Adjustments</h2>
+  <table class="num-table">
+    <thead><tr><th>When</th><th>A</th><th>B</th><th>C</th><th>Status</th><th>Achieved</th></tr></thead>
+    <tbody>
+    {{range .Adj}}
+      <tr><td>{{clock .CreatedAt}}</td><td>{{turnS .TurnsA}}</td><td>{{turnS .TurnsB}}</td><td>{{turnS .TurnsC}}</td>
+        <td>{{.Status}}</td><td>{{if eq .Status "done"}}{{pct .Applied}}{{end}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{end}}
+</div>
+{{end}}{{end}}

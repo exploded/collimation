@@ -1,0 +1,70 @@
+{{define "content"}}
+<div class="narrow">
+  <h1>Setup</h1>
+  {{template "setupform" .}}
+</div>
+{{end}}
+
+{{define "setupform"}}{{with .Data}}
+<form id="setupform" class="setup" hx-post="/setup" hx-target="#setupform" hx-swap="outerHTML">
+  {{if $.Msg}}<div class="alert" role="alert">{{$.Msg}}</div>{{end}}
+  {{if .Saved}}<div class="alert ok" role="status">Saved.</div>{{end}}
+
+  <fieldset>
+    <legend>N.I.N.A.</legend>
+    <div class="grid2">
+      <label>Host<input name="nina_host" value="{{.Set.NinaHost}}" spellcheck="false"></label>
+      <label>Port<input name="nina_port" value="{{.Set.NinaPort}}" inputmode="numeric"></label>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" hx-post="/setup/test" hx-include="closest form" hx-target="#test" hx-swap="outerHTML" hx-disable="this">Test connection</button>
+    </div>
+    {{template "testresult" $}}
+  </fieldset>
+
+  <fieldset>
+    <legend>Focus and exposure</legend>
+    <div class="grid2">
+      <label>Best focus position<input name="focus_pos" value="{{.Set.FocusPos}}" inputmode="numeric">
+        <small>0 = use wherever the focuser is when you press Measure.</small></label>
+      <label>Defocus each side (steps)<input name="defocus_steps" value="{{.Set.DefocusSteps}}" inputmode="numeric">
+        <small>500 steps gives donuts about 115 px across.</small></label>
+      <label>Exposure (s)<input name="exposure_s" value="{{.Set.ExposureS}}" inputmode="decimal"></label>
+      <label>Frames each side<input name="frames_per_side" value="{{.Set.FramesPerSide}}" inputmode="numeric"></label>
+      <label>Live-mode exposure (s)<input name="live_exposure_s" value="{{.Set.LiveExposureS}}" inputmode="decimal"></label>
+      <label>Filter<input name="filter" value="{{.Set.Filter}}" spellcheck="false"><small>Blank = leave the filter wheel alone.</small></label>
+      <label>Gain<input name="gain" value="{{.Set.Gain}}" inputmode="numeric"></label>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" hx-post="/setup/focus" hx-target="#setupform" hx-swap="outerHTML" hx-disable="this">Use the focuser's current position as best focus</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Adjustments</legend>
+    <div class="grid2">
+      <label>Done when within (mm)<input name="tolerance_mm" value="{{.Set.ToleranceMM}}" inputmode="decimal"></label>
+      <label>Ask for this fraction of the turn<input name="correction_gain" value="{{.Set.CorrectionGain}}" inputmode="decimal">
+        <small>0.7 allows for the spongy cell.</small></label>
+      <label>Calibration turn (eighths)<input name="cal_turn" value="{{.Set.CalTurn}}" inputmode="decimal">
+        <small>2 = ¼ turn per calibration step.</small></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Image folder mapping (only if this app runs on a different PC from N.I.N.A.)</legend>
+    <div class="grid2">
+      <label>N.I.N.A. path starts with<input name="path_from" value="{{.Set.PathFrom}}" spellcheck="false" placeholder="C:\Users\obs\Documents\N.I.N.A"></label>
+      <label>Read it here as<input name="path_to" value="{{.Set.PathTo}}" spellcheck="false" placeholder="\\nina-pc\N.I.N.A"></label>
+    </div>
+  </fieldset>
+
+  <div class="actions sticky"><button class="btn primary" hx-disable="this">Save settings</button></div>
+</form>
+{{end}}{{end}}
+
+{{define "testresult"}}{{with .Data}}
+<ul id="test" class="test">
+  {{range .Test}}<li class="{{if .OK}}ok{{else}}bad{{end}}">{{.Text}}</li>{{end}}
+</ul>
+{{end}}{{end}}

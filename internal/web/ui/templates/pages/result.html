@@ -1,0 +1,64 @@
+{{define "content"}}{{with .Data}}
+<div class="wide">
+  <p class="eyebrow">{{.M.Kind}} · {{clock .M.CreatedAt}} · {{.M.Frames}} frames · {{.M.Stars}} stars</p>
+  <h1>Axis {{f1 .M.DecentreMm}} mm from centre <span class="pm">± {{f1 .Err}}</span></h1>
+
+  <div class="kpis">
+    <div class="kpi"><span class="k">Axis lands at</span><span class="v">{{s2 .M.AxisXMm}}, {{s2 .M.AxisYMm}}</span><span class="u">mm (x right, y down)</span></div>
+    <div class="kpi"><span class="k">Coma</span><span class="v">{{s2 .M.ComaX}}, {{s2 .M.ComaY}}</span><span class="u">px ± {{f2 .M.ComaErr}}</span></div>
+    <div class="kpi"><span class="k">Seeing</span><span class="v">{{f2 .M.SeeingPx}}</span><span class="u">px (Gaussian σ)</span></div>
+    <div class="kpi"><span class="k">Obstruction</span><span class="v">{{f2 .M.Obstruction}}</span><span class="u">expected 0.33</span></div>
+    <div class="kpi"><span class="k">Spherical</span><span class="v">{{s2 .M.SaPx}}</span><span class="u">px at the pupil edge</span></div>
+    {{if gt .M.StepUm 0.0}}
+    <div class="kpi"><span class="k">Focuser</span><span class="v">{{f2 .M.StepUm}}</span><span class="u">µm/step · paraxial focus {{f0 .M.ParaxialFocus}}</span></div>
+    {{end}}
+    <div class="kpi"><span class="k">Altitude</span><span class="v">{{f0 .M.Alt}}°</span><span class="u">focuser {{f1 .M.FocTemp}} °C, air {{f1 .M.AmbTemp}} °C</span></div>
+  </div>
+
+  {{with .Res}}
+    {{range .Warnings}}<div class="alert soft">{{.}}</div>{{end}}
+    <h2>Stacked donuts</h2>
+    <p class="hint">Each row: the stacked stars, the fitted model, and the difference (red = more light than the model, blue = less).</p>
+    <div class="sides">
+      {{range $i, $s := .Sides}}
+      <figure>
+        <img src="/result/{{$.Data.M.ID}}/side/{{$i}}" alt="Stack, model and residual at focuser {{$s.Pos}}">
+        <figcaption>Focuser {{$s.Pos}} · {{$s.Frames}} frames · {{$s.Stars}} stars · K {{f1 $s.K}} px</figcaption>
+      </figure>
+      {{end}}
+    </div>
+
+    {{if $.Data.Regions}}
+    <h2>Across the field</h2>
+    <p class="hint">Coma in each part of the frame. Uniform arrows mean a collimation error (or a tilted corrector/camera); arrows that grow toward the edges mean a spacing error. Radial term: {{s2 .RadialA}} px.</p>
+    <div class="regions">
+      {{range $.Data.Regions}}{{range .}}
+      <div class="region">
+        {{if .OK}}
+        <svg viewBox="-50 -50 100 100" aria-hidden="true">
+          <circle r="3" class="r-origin"/>
+          <line x1="0" y1="0" x2="{{f1 (scale8 .Cx)}}" y2="{{f1 (scale8 .Cy)}}" class="r-arrow" marker-end="url(#rh)"/>
+          <defs><marker id="rh" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" class="arrowhead"/></marker></defs>
+        </svg>
+        <span>{{s2 .Cx}}, {{s2 .Cy}}</span>
+        {{else}}<span class="muted">too few stars</span>{{end}}
+        <small>{{.Stars}} stars</small>
+      </div>
+      {{end}}{{end}}
+    </div>
+    {{end}}
+
+    {{if .Frames}}
+    <h2>Frame by frame</h2>
+    <table class="num-table">
+      <thead><tr><th>Frame</th><th>Focuser</th><th>Stars</th><th>Coma (px)</th></tr></thead>
+      <tbody>{{range .Frames}}<tr><td class="file">{{base .Path}}</td><td>{{.Pos}}</td><td>{{.Stars}}</td><td>{{s2 .Cx}}, {{s2 .Cy}}</td></tr>{{end}}</tbody>
+    </table>
+    {{end}}
+  {{else}}
+    <p class="hint">Images and per-region detail are kept for the last 20 measurements while the app is running.</p>
+  {{end}}
+
+  <details class="files"><summary>Files</summary><pre>{{.M.Files}}</pre></details>
+</div>
+{{end}}{{end}}

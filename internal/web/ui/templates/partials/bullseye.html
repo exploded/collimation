@@ -1,0 +1,47 @@
+{{define "bullseye"}}
+<svg class="bull{{if .Live}} is-live{{end}}" viewBox="-30 -30 460 460" role="img"
+     aria-label="Where the primary mirror's axis lands on the sensor">
+  <defs>
+    <radialGradient id="bg-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" class="glow-in"/>
+      <stop offset="100%" class="glow-out"/>
+    </radialGradient>
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" class="arrowhead"/>
+    </marker>
+  </defs>
+  <circle cx="200" cy="200" r="180" class="face" fill="url(#bg-glow)"/>
+  {{range .Rings}}
+    {{if .Tol}}
+      <circle cx="200" cy="200" r="{{f1 .R}}" class="tol"/>
+    {{else}}
+      <circle cx="200" cy="200" r="{{f1 .R}}" class="ring"/>
+      <text x="{{f1 .LX}}" y="196" class="ring-label">{{.Label}}</text>
+    {{end}}
+  {{end}}
+  <line x1="20" y1="200" x2="380" y2="200" class="cross"/>
+  <line x1="200" y1="20" x2="200" y2="380" class="cross"/>
+  <text x="200" y="-12" class="edge">image top</text>
+  <text x="200" y="420" class="edge">image bottom</text>
+  <text x="-14" y="200" class="edge" transform="rotate(-90 -14 200)">primary end</text>
+  <text x="414" y="200" class="edge" transform="rotate(90 414 200)">front of tube</text>
+  <text x="372" y="372" class="extent">{{f0 .Extent}} mm</text>
+
+  {{if .TrailPath}}<path d="{{.TrailPath}}" class="trail-line"/>{{end}}
+  {{range .Trail}}<circle cx="{{f1 .X}}" cy="{{f1 .Y}}" r="4.5" class="trail" style="opacity:{{f2 .Faded}}"/>{{end}}
+
+  {{with .Predicted}}
+    {{if $.Current}}
+    <line x1="{{f1 $.Current.X}}" y1="{{f1 $.Current.Y}}" x2="{{f1 .X}}" y2="{{f1 .Y}}" class="pred-line" marker-end="url(#arrowhead)"/>
+    {{end}}
+    <circle cx="{{f1 .X}}" cy="{{f1 .Y}}" r="10" class="pred"/>
+  {{end}}
+
+  {{with .Current}}
+    <circle cx="{{f1 .X}}" cy="{{f1 .Y}}" r="18" class="halo{{if .Inside}} inside{{end}}"/>
+    <circle cx="{{f1 .X}}" cy="{{f1 .Y}}" r="8" class="here{{if .Inside}} inside{{end}}"/>
+  {{else}}
+    <text x="200" y="300" class="empty">no reading yet</text>
+  {{end}}
+</svg>
+{{end}}

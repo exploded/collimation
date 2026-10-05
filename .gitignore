@@ -1,0 +1,17 @@
+# Build output
+*.exe
+
+# Local data: database and captured frames (hundreds of MB)
+*.db
+*.db-shm
+*.db-wal
+*.fits
+*.fit
+*.MOV
+*.mov
+/images/
+.env
+.local/
+
+# Session notes, kept local
+/CLAUDE.md
