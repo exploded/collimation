@@ -32,6 +32,20 @@ func TestSept28(t *testing.T) {
 		}
 		t.Logf("%s: c=(%+.2f, %+.2f) ± %.2f, axis (%+.2f, %+.2f) mm, eps %.3f, σ %.2f, %.2f µm/step, focus %.0f",
 			pattern, res.ComaX, res.ComaY, res.ComaErr, res.AxisXmm, res.AxisYmm, res.Fit.Shared.Eps, res.Fit.Shared.Sigma, res.StepUM, res.ParaxialFocus)
+		tl := res.Tilt
+		t.Logf("  tilt (%+.2f, %+.2f) ± %.2f mrad over %d regions, curv %+.3f µm/mm², corner %.0f µm",
+			tl.X, tl.Y, tl.Err, tl.Regions, tl.Curv, tl.CornerUM)
+		for _, r := range res.Regions {
+			t.Logf("  region %d,%d at (%+5.1f, %+5.1f) mm: %3d stars, K %v, c (%+.2f, %+.2f), s (%+.3f, %+.3f), hub (%+.3f, %+.3f)",
+				r.Row, r.Col, r.Xmm, r.Ymm, r.Stars, r.K, r.Cx, r.Cy, r.Sx, r.Sy, r.Vx, r.Vy)
+		}
+		if g := res.Pupil; g.OK {
+			ps := g.Fit.Shared
+			t.Logf("  pupil fit: s (%+.3f, %+.3f) g (%+.3f, %+.3f) eps %.3f vane w %.4f ± %.4f at %.1f°, hub (%+.3f, %+.3f), rms %.4f vs %.4f",
+				ps.Sx, ps.Sy, ps.Gx, ps.Gy, ps.Eps, ps.VaneW, g.Fit.SharedSigma.VaneW, ps.VaneAng*180/math.Pi, ps.Vx, ps.Vy, g.Fit.RMS, res.Fit.RMS)
+			t.Logf("  slope %+.4f ± %.4f /mm (geometry %.4f, u ≈ %.0f mm), intra-high %+d, shadow (%+.1f, %+.1f) mm, hub (%+.1f, %+.1f) mm ± %.1f, tube %.1f mrad",
+				g.Slope, g.SlopeErr, g.SlopeGeo, g.HeightMM, g.IntraHigh, g.ShadowX, g.ShadowY, g.HubX, g.HubY, g.ErrMM, g.TubeMrad)
+		}
 		return res
 	}
 	s1 := run("2026-09-28_21-*.fits", 0)

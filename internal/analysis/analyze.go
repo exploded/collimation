@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/exploded/collimation/internal/donut"
+	"github.com/exploded/collimation/internal/model"
 )
 
 // RegionResult is the coma fitted to the stars in one field region.
@@ -16,9 +17,15 @@ type RegionResult struct {
 	Row, Col int
 	CenterX  float64 // region centre relative to frame centre, in half-diagonals
 	CenterY  float64
+	Xmm, Ymm float64 // mean star position relative to the sensor centre (mm)
 	Stars    int
 	Cx, Cy   float64
+	K        []float64 // fitted defocus radius per side (px, signed)
 	OK       bool
+
+	// Pupil geometry (pupil units, fit frame): shadow centre and spider hub.
+	Sx, Sy, Vx, Vy float64
+	PupilOK        bool
 }
 
 // FrameComa is the coma fitted to a single frame.
@@ -61,9 +68,11 @@ type Result struct {
 	AxisXmm       float64 // where the primary's axis lands, relative to the sensor centre
 	AxisYmm       float64
 	DecentreMM    float64
-	RadialA       float64 // coma growth per half-diagonal (px), from the regions
-	ParaxialFocus float64 // focuser position where K = 0 (two sides only)
-	StepUM        float64 // measured µm per step (two sides only)
+	RadialA       float64       // coma growth per half-diagonal (px), from the regions
+	ParaxialFocus float64       // focuser position where K = 0 (two sides only)
+	StepUM        float64       // measured µm per step (two sides only)
+	Tilt          Tilt          // focal-plane tilt (two sides only)
+	Pupil         PupilGeometry // secondary and spider in the beam
 	Alt, Az       float64
 	FocTemp       float64
 	AmbTemp       float64
@@ -186,10 +195,19 @@ func Analyze(ctx context.Context, paths []string, cfg Config, progress Progress)
 		res.Sides[i].Model = RenderModel(fr, sides[i], i)
 	}
 
-	// Per-region coma with everything else fixed.
+	// Pupil geometry with the spider, when the donuts are big enough.
+	var pupil *model.Shared
+	if minAbsK(fr) >= minPupilK {
+		progress("Fitting the pupil (secondary shadow and spider)…")
+		res.Pupil.Fit = fitPupil(sides, fr)
+		res.Pupil.OK = true
+		pupil = &res.Pupil.Fit.Shared
+	}
+
+	// Per-region coma (everything else fixed), then per-region pupil shift.
 	progress("Fitting field regions…")
 	w, h := infos[0].W, infos[0].H
-	res.Regions = fitRegions(sideStars, sides, fr, w, h, cfg.Regions)
+	res.Regions = fitRegions(sideStars, sides, fr, pupil, w, h, cfg)
 
 	// Per-frame coma for frame-to-frame stability.
 	progress("Fitting individual frames…")
@@ -264,7 +282,16 @@ func crop(c *donut.Cutout, n int) *donut.Cutout {
 	return &cc
 }
 
-func fitRegions(stars [][]*donut.Cutout, sides []SideData, global FitResult, w, h, grid int) []RegionResult {
+func minAbsK(fr FitResult) float64 {
+	k := math.Inf(1)
+	for _, s := range fr.Sides {
+		k = math.Min(k, math.Abs(s.K))
+	}
+	return k
+}
+
+func fitRegions(stars [][]*donut.Cutout, sides []SideData, global FitResult, pupil *model.Shared, w, h int, cfg Config) []RegionResult {
+	grid := cfg.Regions
 	if grid < 1 {
 		return nil
 	}
@@ -283,11 +310,14 @@ func fitRegions(stars [][]*donut.Cutout, sides []SideData, global FitResult, w, 
 				}
 				var sub []SideData
 				ok := true
+				var mx, my float64
 				for si, cs := range stars {
 					var in []*donut.Cutout
 					for _, c := range cs {
 						if int(c.X*float64(grid)/float64(w)) == col && int(c.Y*float64(grid)/float64(h)) == row {
 							in = append(in, c)
+							mx += c.X
+							my += c.Y
 						}
 					}
 					if len(in) < 3 {
@@ -300,10 +330,23 @@ func fitRegions(stars [][]*donut.Cutout, sides []SideData, global FitResult, w, 
 						sub = append(sub, d)
 					}
 				}
+				if rr.Stars > 0 {
+					mm := cfg.PixelUM / 1000
+					rr.Xmm = (mx/float64(rr.Stars) - float64(w)/2) * mm
+					rr.Ymm = (my/float64(rr.Stars) - float64(h)/2) * mm
+				}
 				if ok {
 					sh := global.Shared
 					f := FitDonuts(sub, &sh, FitComaOnly, nil)
 					rr.Cx, rr.Cy, rr.OK = f.Shared.Cx, f.Shared.Cy, true
+					for _, s := range f.Sides {
+						rr.K = append(rr.K, s.K)
+					}
+					if pupil != nil {
+						st := startPupilRegion(*pupil, f.Shared)
+						p := FitDonuts(sub, &st, FitPupilShift, nil)
+						rr.Sx, rr.Sy, rr.Vx, rr.Vy, rr.PupilOK = p.Shared.Sx, p.Shared.Sy, p.Shared.Vx, p.Shared.Vy, true
+					}
 				}
 				mu.Lock()
 				out = append(out, rr)
@@ -445,6 +488,9 @@ func derive(res *Result, cfg Config, w, h int) {
 			res.StepUM = math.Abs(slope) * 2 * res.NRatio * cfg.PixelUM
 		}
 	}
+
+	deriveTilt(res, cfg)
+	derivePupil(res, cfg)
 
 	var alt, az, ft, at float64
 	for _, fi := range res.Infos {

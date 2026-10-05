@@ -9,7 +9,7 @@ import (
 	"github.com/exploded/collimation/internal/model"
 )
 
-// Parameter layout: 11 shared parameters, then 5 per side.
+// Parameter layout: 15 shared parameters, then 5 per side.
 const (
 	pCx = iota
 	pCy
@@ -22,6 +22,10 @@ const (
 	pSA
 	pA1
 	pA2
+	pVaneW
+	pVaneAng
+	pVx
+	pVy
 	nShared
 )
 
@@ -57,12 +61,13 @@ type FitResult struct {
 }
 
 func packShared(s model.Shared) []float64 {
-	return []float64{s.Cx, s.Cy, s.Sx, s.Sy, s.Gx, s.Gy, s.Sigma, s.Eps, s.SA, s.A1, s.A2}
+	return []float64{s.Cx, s.Cy, s.Sx, s.Sy, s.Gx, s.Gy, s.Sigma, s.Eps, s.SA, s.A1, s.A2, s.VaneW, s.VaneAng, s.Vx, s.Vy}
 }
 
 func unpackShared(p []float64) model.Shared {
 	return model.Shared{Cx: p[pCx], Cy: p[pCy], Sx: p[pSx], Sy: p[pSy], Gx: p[pGx], Gy: p[pGy],
-		Sigma: p[pSigma], Eps: p[pEps], SA: p[pSA], A1: p[pA1], A2: p[pA2]}
+		Sigma: p[pSigma], Eps: p[pEps], SA: p[pSA], A1: p[pA1], A2: p[pA2],
+		VaneW: p[pVaneW], VaneAng: p[pVaneAng], Vx: p[pVx], Vy: p[pVy]}
 }
 
 func unpackSide(p []float64, i int) model.Side {
@@ -74,9 +79,29 @@ func unpackSide(p []float64, i int) model.Side {
 type FitMode int
 
 const (
-	FitAll      FitMode = iota // every shared parameter
+	FitAll      FitMode = iota // every shared parameter except the spider
 	FitComaOnly                // coma free; other shared parameters fixed at start
+	// FitPupil frees the pupil geometry (shadow, gradient, obstruction and
+	// spider) with the aberrations and seeing fixed at start.
+	FitPupil
+	// FitPupilShift frees only the shadow, spider hub and gradient: the
+	// per-region version of FitPupil.
+	FitPupilShift
 )
+
+// free reports which shared parameters a mode fits.
+func (m FitMode) free(j int) bool {
+	switch m {
+	case FitComaOnly:
+		return j == pCx || j == pCy
+	case FitPupil:
+		return j == pSx || j == pSy || j == pGx || j == pGy || j == pEps || j >= pVaneW
+	case FitPupilShift:
+		return j == pSx || j == pSy || j == pGx || j == pGy || j == pVx || j == pVy
+	default:
+		return j < pVaneW
+	}
+}
 
 // initialSide estimates the starting K, amplitude and obstruction from a stack.
 func initialSide(d SideData) (model.Side, float64) {
@@ -143,10 +168,12 @@ func FitDonuts(sides []SideData, start *model.Shared, mode FitMode, starts [][3]
 	set(pSA, -40, 40, 0.02)
 	set(pA1, -30, 30, 0.02)
 	set(pA2, -30, 30, 0.02)
-	if mode == FitComaOnly {
-		for j := pSx; j < nShared; j++ {
-			fixed[j] = true
-		}
+	set(pVaneW, 0, 0.08, 0.002)
+	set(pVaneAng, -math.Pi, math.Pi, 0.003)
+	set(pVx, -0.5, 0.5, 0.004)
+	set(pVy, -0.5, 0.5, 0.004)
+	for j := range nShared {
+		fixed[j] = !mode.free(j)
 	}
 	affects := make([][]int, np)
 	for i, d := range sides {
@@ -188,7 +215,7 @@ func FitDonuts(sides []SideData, start *model.Shared, mode FitMode, starts [][3]
 			}
 		},
 	}
-	if len(starts) == 0 || mode == FitComaOnly {
+	if len(starts) == 0 || mode != FitAll {
 		starts = [][3]float64{{sh.Sx, sh.Sy, sh.SA}}
 	}
 	results := make([]fit.Result, len(starts))

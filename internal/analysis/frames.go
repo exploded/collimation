@@ -28,6 +28,10 @@ type Config struct {
 	Sat           float64 // saturation level (ADU)
 	MaxStars      int     // per frame
 	Regions       int     // region grid is Regions × Regions
+
+	// Tube geometry for the mirror-balance analysis (assumed, not measured).
+	SecondaryHeightMM  float64 // primary face to secondary centre, u
+	SecondaryToFocusMM float64 // secondary centre to focus, d
 }
 
 // DefaultConfig is the AT12IN (305 mm f/4 primary, Wynne corrector) with an
@@ -42,6 +46,9 @@ func DefaultConfig() Config {
 		Sat:           60000,
 		MaxStars:      400,
 		Regions:       3,
+
+		SecondaryHeightMM:  925,
+		SecondaryToFocusMM: 275,
 	}
 }
 

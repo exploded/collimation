@@ -112,8 +112,9 @@ const createMeasurement = `-- name: CreateMeasurement :exec
 INSERT INTO measurements (
     created_at, kind, coma_x, coma_y, coma_err, axis_x_mm, axis_y_mm, decentre_mm,
     seeing_px, obstruction, sa_px, step_um, paraxial_focus, alt, az, foc_temp, amb_temp,
-    stars, frames, files, ref_focpos, positions, after_slew, note
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    stars, frames, files, ref_focpos, positions, after_slew, note,
+    tilt_x, tilt_y, tilt_err, shadow_x_mm, shadow_y_mm, hub_x_mm, hub_y_mm, pupil_err_mm, intra_high
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateMeasurementParams struct {
@@ -141,6 +142,15 @@ type CreateMeasurementParams struct {
 	Positions     string
 	AfterSlew     int64
 	Note          string
+	TiltX         float64
+	TiltY         float64
+	TiltErr       float64
+	ShadowXMm     float64
+	ShadowYMm     float64
+	HubXMm        float64
+	HubYMm        float64
+	PupilErrMm    float64
+	IntraHigh     int64
 }
 
 func (q *Queries) CreateMeasurement(ctx context.Context, arg CreateMeasurementParams) error {
@@ -169,6 +179,15 @@ func (q *Queries) CreateMeasurement(ctx context.Context, arg CreateMeasurementPa
 		arg.Positions,
 		arg.AfterSlew,
 		arg.Note,
+		arg.TiltX,
+		arg.TiltY,
+		arg.TiltErr,
+		arg.ShadowXMm,
+		arg.ShadowYMm,
+		arg.HubXMm,
+		arg.HubYMm,
+		arg.PupilErrMm,
+		arg.IntraHigh,
 	)
 	return err
 }
@@ -213,7 +232,7 @@ func (q *Queries) GetLastMeasurementID(ctx context.Context) (int64, error) {
 }
 
 const getMeasurement = `-- name: GetMeasurement :one
-SELECT id, created_at, kind, coma_x, coma_y, coma_err, axis_x_mm, axis_y_mm, decentre_mm, seeing_px, obstruction, sa_px, step_um, paraxial_focus, alt, az, foc_temp, amb_temp, stars, frames, files, ref_focpos, positions, after_slew, note FROM measurements WHERE id = ?
+SELECT id, created_at, kind, coma_x, coma_y, coma_err, axis_x_mm, axis_y_mm, decentre_mm, seeing_px, obstruction, sa_px, step_um, paraxial_focus, alt, az, foc_temp, amb_temp, stars, frames, files, ref_focpos, positions, after_slew, note, tilt_x, tilt_y, tilt_err, shadow_x_mm, shadow_y_mm, hub_x_mm, hub_y_mm, pupil_err_mm, intra_high FROM measurements WHERE id = ?
 `
 
 func (q *Queries) GetMeasurement(ctx context.Context, id int64) (Measurement, error) {
@@ -245,6 +264,15 @@ func (q *Queries) GetMeasurement(ctx context.Context, id int64) (Measurement, er
 		&i.Positions,
 		&i.AfterSlew,
 		&i.Note,
+		&i.TiltX,
+		&i.TiltY,
+		&i.TiltErr,
+		&i.ShadowXMm,
+		&i.ShadowYMm,
+		&i.HubXMm,
+		&i.HubYMm,
+		&i.PupilErrMm,
+		&i.IntraHigh,
 	)
 	return i, err
 }
@@ -286,7 +314,7 @@ func (q *Queries) GetSetting(ctx context.Context, key string) (string, error) {
 }
 
 const listMeasurementsSince = `-- name: ListMeasurementsSince :many
-SELECT id, created_at, kind, coma_x, coma_y, coma_err, axis_x_mm, axis_y_mm, decentre_mm, seeing_px, obstruction, sa_px, step_um, paraxial_focus, alt, az, foc_temp, amb_temp, stars, frames, files, ref_focpos, positions, after_slew, note FROM measurements
+SELECT id, created_at, kind, coma_x, coma_y, coma_err, axis_x_mm, axis_y_mm, decentre_mm, seeing_px, obstruction, sa_px, step_um, paraxial_focus, alt, az, foc_temp, amb_temp, stars, frames, files, ref_focpos, positions, after_slew, note, tilt_x, tilt_y, tilt_err, shadow_x_mm, shadow_y_mm, hub_x_mm, hub_y_mm, pupil_err_mm, intra_high FROM measurements
 WHERE created_at >= ? AND kind IN ('measure', 'calibrate')
 ORDER BY id
 `
@@ -326,6 +354,15 @@ func (q *Queries) ListMeasurementsSince(ctx context.Context, createdAt string) (
 			&i.Positions,
 			&i.AfterSlew,
 			&i.Note,
+			&i.TiltX,
+			&i.TiltY,
+			&i.TiltErr,
+			&i.ShadowXMm,
+			&i.ShadowYMm,
+			&i.HubXMm,
+			&i.HubYMm,
+			&i.PupilErrMm,
+			&i.IntraHigh,
 		); err != nil {
 			return nil, err
 		}
@@ -382,7 +419,7 @@ func (q *Queries) ListRecentAdjustments(ctx context.Context, limit int64) ([]Adj
 }
 
 const listRecentMeasurements = `-- name: ListRecentMeasurements :many
-SELECT id, created_at, kind, coma_x, coma_y, coma_err, axis_x_mm, axis_y_mm, decentre_mm, seeing_px, obstruction, sa_px, step_um, paraxial_focus, alt, az, foc_temp, amb_temp, stars, frames, files, ref_focpos, positions, after_slew, note FROM measurements ORDER BY id DESC LIMIT ?
+SELECT id, created_at, kind, coma_x, coma_y, coma_err, axis_x_mm, axis_y_mm, decentre_mm, seeing_px, obstruction, sa_px, step_um, paraxial_focus, alt, az, foc_temp, amb_temp, stars, frames, files, ref_focpos, positions, after_slew, note, tilt_x, tilt_y, tilt_err, shadow_x_mm, shadow_y_mm, hub_x_mm, hub_y_mm, pupil_err_mm, intra_high FROM measurements ORDER BY id DESC LIMIT ?
 `
 
 func (q *Queries) ListRecentMeasurements(ctx context.Context, limit int64) ([]Measurement, error) {
@@ -420,6 +457,15 @@ func (q *Queries) ListRecentMeasurements(ctx context.Context, limit int64) ([]Me
 			&i.Positions,
 			&i.AfterSlew,
 			&i.Note,
+			&i.TiltX,
+			&i.TiltY,
+			&i.TiltErr,
+			&i.ShadowXMm,
+			&i.ShadowYMm,
+			&i.HubXMm,
+			&i.HubYMm,
+			&i.PupilErrMm,
+			&i.IntraHigh,
 		); err != nil {
 			return nil, err
 		}

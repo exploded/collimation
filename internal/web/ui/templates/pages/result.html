@@ -15,6 +15,32 @@
     <div class="kpi"><span class="k">Altitude</span><span class="v">{{f0 .M.Alt}}°</span><span class="u">focuser {{f1 .M.FocTemp}} °C, air {{f1 .M.AmbTemp}} °C</span></div>
   </div>
 
+  {{with .Balance}}
+  <h2>Mirror balance</h2>
+  <p class="hint">Nulling coma with one mirror can hide an error in the other: the residual shows up as focal-plane tilt. The donuts also show where the primary's axis meets the secondary.</p>
+  {{if .Tilt}}
+  <div class="alert {{.Level}}" role="status"><strong>{{.Verdict}}</strong> {{.Detail}}</div>
+  <div class="kpis">
+    <div class="kpi"><span class="k">Focal-plane tilt</span><span class="v">{{f1 .TiltMag}}</span><span class="u">mrad ± {{f1 .TiltErr}}{{if .Rough}} · rough: small donuts{{end}}</span></div>
+    <div class="kpi"><span class="k">Corner defocus</span><span class="v">{{f0 .CornerUM}}</span><span class="u">µm from tilt; critical focus zone 46 µm</span></div>
+    <div class="kpi"><span class="k">Left to right</span><span class="v">{{index .AcrossX 0}}</span><span class="u">{{index .AcrossX 1}}</span></div>
+    <div class="kpi"><span class="k">Top to bottom</span><span class="v">{{index .AcrossY 0}}</span><span class="u">{{index .AcrossY 1}}</span></div>
+  </div>
+  {{end}}
+  {{if .Pupil}}
+  <p class="hint">{{.Side}} {{.Slope}}</p>
+  <div class="kpis">
+    {{if .Hub}}
+    <div class="kpi"><span class="k">Axis to spider hub</span><span class="v">{{f1 .HubMM}}</span><span class="u">mm ({{s2 .HubX}}, {{s2 .HubY}}) ± {{f1 .ErrMM}}: primary about {{f1 .TubeMrad}} mrad off the tube axis</span></div>
+    {{end}}
+    <div class="kpi"><span class="k">Axis to secondary centre</span><span class="v">{{f1 .ShadowMM}}</span><span class="u">mm ({{s2 .ShadowX}}, {{s2 .ShadowY}}) ± {{f1 .ErrMM}}: design offset about {{f1 .Design}} mm</span></div>
+    {{if .Hub}}
+    <div class="kpi"><span class="k">Secondary on holder</span><span class="v">{{f1 .HolderMM}}</span><span class="u">mm from the hub</span></div>
+    {{end}}
+  </div>
+  {{end}}
+  {{end}}
+
   {{with .Res}}
     {{range .Warnings}}<div class="alert soft">{{.}}</div>{{end}}
     <h2>Stacked donuts</h2>

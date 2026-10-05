@@ -65,6 +65,15 @@ type Measurement struct {
 	Positions     string
 	AfterSlew     int64
 	Note          string
+	TiltX         float64
+	TiltY         float64
+	TiltErr       float64
+	ShadowXMm     float64
+	ShadowYMm     float64
+	HubXMm        float64
+	HubYMm        float64
+	PupilErrMm    float64
+	IntraHigh     int64
 }
 
 type Setting struct {

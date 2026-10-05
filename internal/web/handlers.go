@@ -264,6 +264,7 @@ type ResultView struct {
 	Res     *analysis.Result
 	Regions [][]analysis.RegionResult
 	Err     float64
+	Balance *BalanceView
 }
 
 func (s *Server) result(w http.ResponseWriter, r *http.Request) {
@@ -277,6 +278,7 @@ func (s *Server) result(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v := ResultView{M: m, Res: s.st.Result(id), Err: axisErr(m.ComaErr, s.st.Cfg)}
+	v.Balance = balanceView(m, v.Res, s.st.Cfg)
 	if v.Res != nil && len(v.Res.Regions) > 0 {
 		n := s.st.Cfg.Regions
 		v.Regions = make([][]analysis.RegionResult, n)

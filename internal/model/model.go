@@ -18,9 +18,12 @@ type Shared struct {
 	SA     float64 // transverse spherical aberration at the pupil edge (px)
 	A1, A2 float64 // astigmatism (px at the pupil edge)
 
-	// Spider: four vanes through the shadow centre, VaneW wide (pupil units)
-	// at VaneAng and VaneAng+90° (radians). VaneW = 0 disables them.
+	// Spider: four vanes through the hub (Vx, Vy), VaneW wide (pupil units)
+	// at VaneAng and VaneAng+90° (radians). VaneW = 0 disables them. The hub
+	// is separate from the shadow centre because the secondary is offset on
+	// its holder; the hub marks the tube axis.
 	VaneW, VaneAng float64
+	Vx, Vy         float64
 }
 
 // Side holds the per-side parameters.
@@ -93,19 +96,14 @@ func (p *Pupil) Render(dst []float64, n int, sh Shared, sd Side) {
 	for i := range p.X {
 		x, y := p.X[i], p.Y[i]
 		// Obstruction with a soft edge.
-		d := math.Hypot(x-sh.Sx, y-sh.Sy)
-		var keep float64
-		switch t := (d-eps)/edgeWidth + 0.5; {
-		case t <= 0:
+		keep := softEdge(math.Hypot(x-sh.Sx, y-sh.Sy) - eps)
+		if keep == 0 {
 			continue
-		case t >= 1:
-			keep = 1
-		default:
-			keep = t * t * (3 - 2*t)
 		}
 		if sh.VaneW > 0 {
-			qx, qy := x-sh.Sx, y-sh.Sy
-			if math.Abs(-qx*vs+qy*vc) < sh.VaneW/2 || math.Abs(qx*vc+qy*vs) < sh.VaneW/2 {
+			qx, qy := x-sh.Vx, y-sh.Vy
+			keep *= softEdge(math.Abs(-qx*vs+qy*vc)-sh.VaneW/2) * softEdge(math.Abs(qx*vc+qy*vs)-sh.VaneW/2)
+			if keep == 0 {
 				continue
 			}
 		}
@@ -137,6 +135,19 @@ func (p *Pupil) Render(dst []float64, n int, sh Shared, sd Side) {
 	f := sd.Amp / sum
 	for i := range dst {
 		dst[i] = dst[i]*f + sd.Bg
+	}
+}
+
+// softEdge is the transmission at signed distance d (pupil units) outside an
+// opaque edge: 0 inside, 1 beyond edgeWidth/2, smoothstep in between.
+func softEdge(d float64) float64 {
+	switch t := d/edgeWidth + 0.5; {
+	case t <= 0:
+		return 0
+	case t >= 1:
+		return 1
+	default:
+		return t * t * (3 - 2*t)
 	}
 }
 

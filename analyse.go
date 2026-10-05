@@ -101,6 +101,23 @@ func printResult(r *analysis.Result) {
 		}
 	}
 	fmt.Printf("Radial coma term a = %+.2f px per half-diagonal\n", r.RadialA)
+	if t := r.Tilt; t.OK {
+		rough := ""
+		if t.Rough {
+			rough = " (rough: small donuts)"
+		}
+		fmt.Printf("Tilt          (%+.2f, %+.2f) ± %.2f mrad%s; corner %.0f µm; curvature %+.3f µm/mm²\n", t.X, t.Y, t.Err, rough, t.CornerUM, t.Curv)
+		fmt.Printf("  if from the mirrors: secondary %.1f mrad off, primary pulled %.1f mrad\n", t.SecondaryMrad, t.PrimaryMrad)
+	}
+	if g := r.Pupil; g.OK {
+		fmt.Printf("Shadow drift  %+.4f ± %.4f /mm (geometry %.4f: secondary %.0f mm up); inside focus: %+d (+1 = higher FOCPOS)\n",
+			g.Slope, g.SlopeErr, g.SlopeGeo, g.HeightMM, g.IntraHigh)
+		fmt.Printf("At the secondary, from the primary's axis: shadow (%+.1f, %+.1f) mm", g.ShadowX, g.ShadowY)
+		if g.Hub {
+			fmt.Printf(", spider hub (%+.1f, %+.1f) mm → %.1f mrad off the tube", g.HubX, g.HubY, g.TubeMrad)
+		}
+		fmt.Printf(" ± %.1f mm\n", g.ErrMM)
+	}
 	fmt.Println("Per frame:")
 	for _, fc := range r.Frames {
 		fmt.Printf("  %s FOCPOS %d %3d stars (%+.2f, %+.2f)\n", filepath.Base(fc.Path), fc.Pos, fc.Stars, fc.Cx, fc.Cy)

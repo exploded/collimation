@@ -410,6 +410,15 @@ func (s *Station) save(ctx context.Context, kind string, res *analysis.Result) (
 		RefFocpos:     int64(ref),
 		Positions:     string(pj),
 		AfterSlew:     boolInt(slewed),
+		TiltX:         res.Tilt.X,
+		TiltY:         res.Tilt.Y,
+		TiltErr:       res.Tilt.Err,
+		ShadowXMm:     res.Pupil.ShadowX,
+		ShadowYMm:     res.Pupil.ShadowY,
+		HubXMm:        res.Pupil.HubX,
+		HubYMm:        res.Pupil.HubY,
+		PupilErrMm:    res.Pupil.ErrMM,
+		IntraHigh:     int64(res.Pupil.IntraHigh),
 	})
 	if err != nil {
 		return 0, err

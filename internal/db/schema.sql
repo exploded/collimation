@@ -32,7 +32,18 @@ CREATE TABLE IF NOT EXISTS measurements (
     ref_focpos     INTEGER NOT NULL DEFAULT 0, -- FOCPOS of the frame in positions
     positions      TEXT    NOT NULL DEFAULT '',-- JSON [[x,y],...] star centroids
     after_slew     INTEGER NOT NULL DEFAULT 0, -- 1 if the mount moved since the last one
-    note           TEXT    NOT NULL DEFAULT ''
+    note           TEXT    NOT NULL DEFAULT '',
+    -- Mirror balance (added 6 Oct 2026; open.go adds them to older files).
+    -- An error of 0 means not measured.
+    tilt_x         REAL    NOT NULL DEFAULT 0, -- focal-plane tilt (mrad): best focus
+    tilt_y         REAL    NOT NULL DEFAULT 0, -- toward higher FOCPOS per mm toward +x/+y
+    tilt_err       REAL    NOT NULL DEFAULT 0,
+    shadow_x_mm    REAL    NOT NULL DEFAULT 0, -- secondary silhouette from the primary's axis
+    shadow_y_mm    REAL    NOT NULL DEFAULT 0,
+    hub_x_mm       REAL    NOT NULL DEFAULT 0, -- spider hub from the primary's axis
+    hub_y_mm       REAL    NOT NULL DEFAULT 0,
+    pupil_err_mm   REAL    NOT NULL DEFAULT 0,
+    intra_high     INTEGER NOT NULL DEFAULT 0  -- +1 higher FOCPOS is inside focus, -1 lower, 0 unknown
 );
 
 -- Screw sensitivities: coma change and star shift per +1/8 turn

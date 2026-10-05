@@ -12,8 +12,9 @@ ON CONFLICT(key) DO UPDATE SET value = excluded.value;
 INSERT INTO measurements (
     created_at, kind, coma_x, coma_y, coma_err, axis_x_mm, axis_y_mm, decentre_mm,
     seeing_px, obstruction, sa_px, step_um, paraxial_focus, alt, az, foc_temp, amb_temp,
-    stars, frames, files, ref_focpos, positions, after_slew, note
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    stars, frames, files, ref_focpos, positions, after_slew, note,
+    tilt_x, tilt_y, tilt_err, shadow_x_mm, shadow_y_mm, hub_x_mm, hub_y_mm, pupil_err_mm, intra_high
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetLastMeasurementID :one
 SELECT CAST(COALESCE(MAX(id), 0) AS INTEGER) AS id FROM measurements;
