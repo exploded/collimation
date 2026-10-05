@@ -44,6 +44,8 @@ var added = []struct{ table, column, decl string }{
 	{"measurements", "hub_y_mm", "REAL NOT NULL DEFAULT 0"},
 	{"measurements", "pupil_err_mm", "REAL NOT NULL DEFAULT 0"},
 	{"measurements", "intra_high", "INTEGER NOT NULL DEFAULT 0"},
+	{"measurements", "tilt_rough", "INTEGER NOT NULL DEFAULT 0"},
+	{"measurements", "pupil_rough", "INTEGER NOT NULL DEFAULT 0"},
 }
 
 func migrate(conn *sql.DB) error {

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -303,6 +304,12 @@ func (c *Client) Slew(ctx context.Context, raDeg, decDeg float64, moving func(Mo
 			// The mount may not report Slewing straight away, so a stop only
 			// counts once it has been seen moving, or after a grace period.
 			if still >= 2 && (seen || time.Since(start) > 10*time.Second) {
+				// A slew past the mount's limits is refused without an
+				// error here (TheSkyX shows a dialog), so check where the
+				// mount stopped.
+				if d := separation(m.RightAscension*15, m.Declination, raDeg, decDeg); d > maxSlewMiss {
+					return fmt.Errorf("the mount stopped %.0f° from the target: the slew was refused, probably by a mount limit. Close any TheSkyX error and use Slew to Collimation Field for a fresh field", d)
+				}
 				return nil
 			}
 		}
@@ -310,6 +317,18 @@ func (c *Client) Slew(ctx context.Context, raDeg, decDeg float64, moving func(Mo
 			return errors.New("the mount was still slewing after 5 minutes")
 		}
 	}
+}
+
+// maxSlewMiss is how far (degrees) a finished slew may stop from the target.
+// It allows for precession between J2000 and the mount's JNow and for the
+// pointing error; a refused slew stays where it was.
+const maxSlewMiss = 2.0
+
+// separation is the angle (degrees) between two sky positions in degrees.
+func separation(ra1, dec1, ra2, dec2 float64) float64 {
+	r := math.Pi / 180
+	c := math.Sin(dec1*r)*math.Sin(dec2*r) + math.Cos(dec1*r)*math.Cos(dec2*r)*math.Cos((ra1-ra2)*r)
+	return math.Acos(math.Max(-1, math.Min(1, c))) / r
 }
 
 // StopSlew asks the mount to stop slewing. It is used when a job is stopped,

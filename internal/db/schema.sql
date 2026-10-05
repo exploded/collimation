@@ -43,7 +43,9 @@ CREATE TABLE IF NOT EXISTS measurements (
     hub_x_mm       REAL    NOT NULL DEFAULT 0, -- spider hub from the primary's axis
     hub_y_mm       REAL    NOT NULL DEFAULT 0,
     pupil_err_mm   REAL    NOT NULL DEFAULT 0,
-    intra_high     INTEGER NOT NULL DEFAULT 0  -- +1 higher FOCPOS is inside focus, -1 lower, 0 unknown
+    intra_high     INTEGER NOT NULL DEFAULT 0, -- +1 higher FOCPOS is inside focus, -1 lower, 0 unknown
+    tilt_rough     INTEGER NOT NULL DEFAULT 0, -- 1 if the donuts were too small for a reliable tilt
+    pupil_rough    INTEGER NOT NULL DEFAULT 0  -- 1 if the shadow and spider fit is too noisy to trust
 );
 
 -- Screw sensitivities: coma change and star shift per +1/8 turn

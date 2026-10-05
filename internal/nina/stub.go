@@ -146,8 +146,14 @@ func (s *Stub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.homed = false
-		s.ra, _ = strconv.ParseFloat(q.Get("ra"), 64)
-		s.dec, _ = strconv.ParseFloat(q.Get("dec"), 64)
+		ra, _ := strconv.ParseFloat(q.Get("ra"), 64)
+		dec, _ := strconv.ParseFloat(q.Get("dec"), 64)
+		// Like TheSkyX past a limit: accept the request but don't move.
+		if dec < -85 {
+			s.reply(w, "Started Slew")
+			return
+		}
+		s.ra, s.dec = ra, dec
 		// Like the plugin without waitForResult: reply at once, then report
 		// Slewing for a while.
 		s.slewEnd = time.Now().Add(300 * time.Millisecond)

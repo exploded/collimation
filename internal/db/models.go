@@ -74,6 +74,8 @@ type Measurement struct {
 	HubYMm        float64
 	PupilErrMm    float64
 	IntraHigh     int64
+	TiltRough     int64
+	PupilRough    int64
 }
 
 type Setting struct {

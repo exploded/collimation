@@ -21,13 +21,14 @@
   {{if .Tilt}}
   <div class="alert {{.Level}}" role="status"><strong>{{.Verdict}}</strong> {{.Detail}}</div>
   <div class="kpis">
-    <div class="kpi"><span class="k">Focal-plane tilt</span><span class="v">{{f1 .TiltMag}}</span><span class="u">mrad ± {{f1 .TiltErr}}{{if .Rough}} · rough: small donuts{{end}}</span></div>
-    <div class="kpi"><span class="k">Corner defocus</span><span class="v">{{f0 .CornerUM}}</span><span class="u">µm from tilt; critical focus zone 46 µm</span></div>
+    <div class="kpi"><span class="k">Focal-plane tilt</span><span class="v">{{f1 .TiltMag}}</span><span class="u">mrad ± {{f1 .TiltErr}}{{if .TiltRough}} · rough: small donuts{{end}}</span></div>
+    <div class="kpi"><span class="k">Corner defocus</span><span class="v">{{f0 .CornerUM}}</span><span class="u">µm at the worst corner, from tilt; zone ±23 µm</span></div>
     <div class="kpi"><span class="k">Left to right</span><span class="v">{{index .AcrossX 0}}</span><span class="u">{{index .AcrossX 1}}</span></div>
     <div class="kpi"><span class="k">Top to bottom</span><span class="v">{{index .AcrossY 0}}</span><span class="u">{{index .AcrossY 1}}</span></div>
   </div>
   {{end}}
   {{if .Pupil}}
+  {{if .PupilRough}}<div class="alert soft" role="status"><strong>Too noisy to trust this time{{with .Why}}: {{.}}{{end}}.</strong> Thin cloud, few stars or poor seeing hide the faint spider shadows. Re-measure on a clear night before acting on these.</div>{{end}}
   <p class="hint">{{.Side}} {{.Slope}}</p>
   <div class="kpis">
     {{if .Hub}}

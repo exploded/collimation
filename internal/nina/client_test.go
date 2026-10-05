@@ -114,6 +114,9 @@ func TestClientAgainstStub(t *testing.T) {
 	if moves == 0 {
 		t.Error("no progress while slewing")
 	}
+	if err := c.Slew(ctx, 10, -88, nil); err == nil || !strings.Contains(err.Error(), "refused") {
+		t.Errorf("slew past a limit: %v, want refused", err)
+	}
 	if _, err := c.Solve(ctx, 0, -1); err == nil {
 		t.Error("solve with a 0 s exposure should fail")
 	}

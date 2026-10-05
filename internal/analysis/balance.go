@@ -1,6 +1,7 @@
 package analysis
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/exploded/collimation/internal/model"
@@ -59,7 +60,19 @@ type PupilGeometry struct {
 	Hub              bool    // spider found
 	ErrMM            float64 // 1σ on each component
 	TubeMrad         float64 // angle between the primary's axis and the hub (tube axis)
+	// Rough: too noisy to trust (thin cloud, few stars). Why says which test
+	// failed.
+	Rough bool
+	Why   string
 }
+
+// Limits for a trustworthy pupil fit: the position error, and how far the
+// height implied by the shadow drift may stray from the assumed height.
+const (
+	maxPupilErrMM = 2.0
+	minHeightFrac = 0.6
+	maxHeightFrac = 1.25 // the front ring is only about 1070 mm up
+)
 
 // minPupilK is the smallest defocus radius (px) worth a pupil fit: smaller
 // donuts don't resolve the spider.
@@ -226,6 +239,15 @@ func derivePupil(res *Result, cfg Config) {
 		g.HubX, g.HubY = at(x[2], res.AxisXmm), at(x[3], res.AxisYmm)
 		g.ErrMM = math.Max(g.ErrMM, math.Max(sig[2], sig[3])*R)
 		g.TubeMrad = math.Hypot(g.HubX, g.HubY) / cfg.SecondaryHeightMM * 1000
+	}
+	switch frac := g.HeightMM / cfg.SecondaryHeightMM; {
+	case g.ErrMM > maxPupilErrMM:
+		g.Rough, g.Why = true, fmt.Sprintf("positions are only good to ±%.1f mm", g.ErrMM)
+	case frac < minHeightFrac || frac > maxHeightFrac:
+		g.Rough, g.Why = true, fmt.Sprintf("the shadow drift puts the secondary %.0f mm above the primary, which can't be right", g.HeightMM)
+	}
+	if g.Rough {
+		res.Warnings = append(res.Warnings, "The secondary and spider positions are too noisy to trust: "+g.Why+".")
 	}
 }
 

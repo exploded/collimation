@@ -57,6 +57,14 @@ func TestSept28(t *testing.T) {
 	if d := math.Hypot(s2.ComaX-s1.ComaX, s2.ComaY-s1.ComaY); d > 0.6 {
 		t.Errorf("set 2 coma differs from set 1 by %.2f px", d)
 	}
+	// Set 2's large donuts give a pupil fit worth trusting.
+	if !s2.Pupil.OK || s2.Pupil.Rough || s2.Pupil.IntraHigh != -1 {
+		t.Errorf("set 2 pupil: ok %v, rough %v (%s), inside focus %+d; want ok, not rough, lower position inside",
+			s2.Pupil.OK, s2.Pupil.Rough, s2.Pupil.Why, s2.Pupil.IntraHigh)
+	}
+	if !s1.Tilt.Rough || s2.Tilt.Rough {
+		t.Errorf("tilt rough: set 1 %v, set 2 %v; want true, false", s1.Tilt.Rough, s2.Tilt.Rough)
+	}
 	for _, r := range []*Result{s1, s2} {
 		if r.StepUM < 3.0 || r.StepUM > 3.6 {
 			t.Errorf("focuser scale %.2f µm/step, want about 3.36", r.StepUM)

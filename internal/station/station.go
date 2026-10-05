@@ -419,6 +419,8 @@ func (s *Station) save(ctx context.Context, kind string, res *analysis.Result) (
 		HubYMm:        res.Pupil.HubY,
 		PupilErrMm:    res.Pupil.ErrMM,
 		IntraHigh:     int64(res.Pupil.IntraHigh),
+		TiltRough:     boolInt(res.Tilt.Rough),
+		PupilRough:    boolInt(res.Pupil.Rough),
 	})
 	if err != nil {
 		return 0, err
@@ -655,8 +657,33 @@ func (s *Station) Recentre() error {
 		if err != nil {
 			return err
 		}
+		// The field was chosen 1.3 h west of the meridian and keeps moving
+		// west. Past about 2.5 h it nears the mount's limit, so pick a
+		// fresh field instead.
+		m, err := c.Mount(ctx)
+		if err != nil {
+			return err
+		}
+		if ha := hourAngle(m.SiderealTime, set.TargetRA); ha > maxFieldHA || ha < -1 {
+			ra, dec := collim.CollimationField(m.SiderealTime, m.SiteLatitude)
+			p.Note("The field has moved %.1f h west of the meridian, so using a fresh one", ha)
+			set.TargetRA, set.TargetDec = ra, dec
+			if err := set.Save(ctx, s.Q); err != nil {
+				return err
+			}
+		}
 		return s.slewAndCentre(ctx, p, c, set, set.TargetRA, set.TargetDec)
 	})
+}
+
+// maxFieldHA is how far west of the meridian (hours) a stored collimation
+// field may be before Re-centre picks a fresh one.
+const maxFieldHA = 2.5
+
+// hourAngle is the hour angle (hours, −12 to 12) of RA raDeg at sidereal
+// time lst (hours).
+func hourAngle(lst, raDeg float64) float64 {
+	return wrap180((lst-raDeg/15)*15) / 15
 }
 
 // Centring tolerance and attempts. The field is about 70′ × 47′, so a few
