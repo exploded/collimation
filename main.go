@@ -25,6 +25,9 @@ import (
 // defaultPort is the web UI port. COLLIM_PORT overrides it.
 const defaultPort = "8780"
 
+// version is set by the release build (-X main.version=v0.1.0).
+var version = "dev"
+
 func main() {
 	if len(os.Args) > 1 {
 		var err error
@@ -71,7 +74,7 @@ func serve() error {
 		return fmt.Errorf("port %s is in use. Is the collimation app already running? (%w)", port, err)
 	}
 	local := "http://localhost:" + port
-	fmt.Println("Collimation station")
+	fmt.Println("Collimation station", version)
 	fmt.Println("  This PC:        ", local)
 	for _, u := range lanURLs(port) {
 		fmt.Println("  Laptop or phone:", u)

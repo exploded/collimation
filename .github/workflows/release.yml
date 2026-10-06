@@ -1,0 +1,40 @@
+name: Release
+
+# Push a version tag (git tag v0.1.0 && git push --tags) to test, build the
+# Windows binary and publish it as a GitHub Release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Test
+        run: go test -short ./...
+
+      - name: Build
+        env:
+          CGO_ENABLED: '0'
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -trimpath -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" -o dist/collimation.exe .
+
+      - name: Package
+        run: |
+          cp start.bat README.md dist/
+          cd dist && zip ../collimation-${GITHUB_REF_NAME}-windows-amd64.zip *
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" collimation-*.zip --title "$GITHUB_REF_NAME" --generate-notes

@@ -50,10 +50,12 @@ Corrections are then solved with the two cheapest screws, scaled down to 70% for
 
 ## Run it
 
-1. In this folder, run `go build`. This produces `collimation.exe`, with the web pages built in.
+1. Download the zip from the [latest release](https://github.com/exploded/collimation/releases/latest) and extract it to a folder, for example `C:\Collimation`. To build from source instead, run `go build` in this folder.
 2. Double-click `start.bat`. It opens the station in the browser and prints the address to use from the laptop or a phone, for example `http://nina-pc:8780`.
 
-Run it on the N.I.N.A. PC so it can read the saved frames directly. Settings live in the web UI (**Setup**) and in `collimation.db` next to the `.exe`.
+The first time, Windows SmartScreen may say "Windows protected your PC", because the `.exe` isn't signed. Click **More info**, then **Run anyway**.
+
+Run it on the N.I.N.A. PC so it can read the saved frames directly. Settings live in the web UI (**Setup**) and in `collimation.db` next to the `.exe`. To update, extract a newer zip over the same folder. The zip doesn't contain a database, so your settings and history are kept.
 
 **Requirements:** N.I.N.A. with the **Advanced API** plugin (default port 1888), and the focuser, camera and mount connected in N.I.N.A.
 
@@ -87,3 +89,5 @@ collimation stub-nina <dir> 1899  # fake N.I.N.A. that serves saved frames
 ```
 
 `COLLIM_PORT`, `COLLIM_DB` and `COLLIM_NOBROWSER=1` override the port, database path and browser launch. After editing `internal/db/queries.sql` or `schema.sql`, run `sqlc generate`.
+
+To publish a release, tag and push: `git tag v0.1.0 && git push --tags`. The **Release** workflow runs the tests, builds `collimation.exe` for Windows and attaches the zip to a GitHub Release.
